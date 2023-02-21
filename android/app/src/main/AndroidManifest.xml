@@ -8,15 +8,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
 
+    
    <application
-        android:label="maptrack"
+        android:label="truckotruck"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
          <!-- ================  Google  Map ================ -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"  
-            android:value="AIzaSyDW_-Ds0EqmP3GSwQ2IHtxvLJHYRMozVi8" />
-
+            android:value="AIzaSyDW_-Ds0EqmP3GSwQ2IHtxvLJHYRMozVi8"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -43,9 +43,5 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-           
     </application>
 </manifest>
-
-
-<!-- Google APi Key Old : AIzaSyDcvNRmE4NFT14kuGM6ZmeFAlidTmMI9L0 -->

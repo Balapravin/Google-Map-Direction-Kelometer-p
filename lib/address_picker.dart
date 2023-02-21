@@ -2,9 +2,10 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:maptrack/config.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_place_picker_mb/google_maps_place_picker.dart';
+
+import 'main.dart';
 
 class LocationPicker extends StatefulWidget {
   const LocationPicker({super.key});

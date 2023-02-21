@@ -1,6 +1,6 @@
 {
-    "name": "maptrack",
-    "short_name": "maptrack",
+    "name": "truckotruck",
+    "short_name": "truckotruck",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

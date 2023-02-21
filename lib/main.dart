@@ -1,15 +1,13 @@
-// ignore_for_file: non_constant_identifier_names, unnecessary_statements
+// ignore_for_file: non_constant_identifier_names, unnecessary_statements, prefer_const_constructors, prefer_collection_literals, prefer_final_fields
 
 import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:location/location.dart';
-import 'package:maptrack/Categorys/Allpage_button.dart';
-import 'package:maptrack/config.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:google_maps_place_picker_mb/google_maps_place_picker.dart';
-
+import 'package:google_maps_widget/google_maps_widget.dart';
+import 'package:location/location.dart';
+import 'package:truckotruck/address_picker.dart';
 
 void main() => runApp(MyApp());
 
@@ -18,294 +16,142 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: CommonButton(),
+      home: Home(),
     );
   }
 }
 
+const String googleMapApiKey = "AIzaSyDW_-Ds0EqmP3GSwQ2IHtxvLJHYRMozVi8";
 
+//=========================================
 
-
-
-
-
-
-
-
-
-
-
-//=============== NOT USED =========================================
-class MapRoureTracker extends StatefulWidget {
+class Home extends StatefulWidget {
   @override
-  State<MapRoureTracker> createState() => MapRoureTrackerState();
+  _HomeState createState() => _HomeState();
 }
 
-class MapRoureTrackerState extends State<MapRoureTracker> {
-  double CAMERA_ZOOM = 16;
-  double CAMERA_TILT = 60;
-  double CAMERA_BEARING = 20;
-  PickResult? fromAddress;
-  PickResult? toAddress;
+class _HomeState extends State<Home> {
+  Set<Polyline> _directionPolyline = {};
 
-  LatLng fromLatLng = LatLng(11.0551709, 77.0151313);
-  LatLng toLatLng = LatLng(11.0254458, 77.0100475);
+  List<LatLng> latLen = [
+    LatLng(11.025307284410333, 77.01051900642669),
+    LatLng(11.027875789527531, 77.0115207227632),
+    LatLng(11.031650548380346, 77.02753406803816),
+    LatLng(11.065924014997053, 77.0928344131661),
+    LatLng(11.026418127485128, 77.12621194236172),
+  ];
+  Polyline polyLine = Polyline(
+    polylineId: const PolylineId('direction'),
+    color: Colors.blue,
+    points: List.empty(growable: true),
+    width: 5,
+    startCap: Cap.roundCap,
+    endCap: Cap.roundCap,
+    jointType: JointType.round,
+    geodesic: true,
+  );
 
-  TextEditingController sourceAddress = TextEditingController();
-  TextEditingController destinationAddress = TextEditingController();
+  GoogleMapController? mapController; //contrller for Google map
+  PolylinePoints polylinePoints = PolylinePoints();
 
-  Completer<GoogleMapController> mapController = Completer();
-  LocationData? currentLocation;
+  String googleAPiKey = googleMapApiKey;
 
-  //============== Get Current Location ====================
-  void getCurrentLocation() async {
-    Location location = Location();
+  Set<Marker> markers = Set(); //markers for google map
+  Map<PolylineId, Polyline> polylines = {}; //polylines to show direction
 
-    location.getLocation().then((location) => currentLocation = location);
-
-    GoogleMapController googleMapController = await mapController.future;
-    location.onLocationChanged.listen((newLoc) {
-      currentLocation = newLoc;
-      print('current Location0 : $currentLocation');
-
-      googleMapController.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(
-              zoom: CAMERA_ZOOM,
-              tilt: CAMERA_TILT,
-              bearing: CAMERA_BEARING,
-              target: LatLng(newLoc.latitude!, newLoc.longitude!))));
-
-    
-      polylineCoordinates=[];
-      getpolypoints();
-      setState(() {});
-      
-    });
-  }
-
-// ================= Polyline =================
-
-  List<LatLng> polylineCoordinates = [];
-  void getpolypoints() async {
-    PolylinePoints polylinePoints = PolylinePoints();
-
-    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-        googleMapApiKey,
-        PointLatLng(currentLocation!.latitude!, currentLocation!.longitude!),
-        PointLatLng(toLatLng.latitude, toLatLng.longitude));
-    if (result.points.isNotEmpty) {
-      result.points.forEach((PointLatLng point) =>
-          polylineCoordinates.add(LatLng(point.latitude, point.longitude)));
-
-      // setState(() {});
+  LatLng startLocation = LatLng(11.025307284410333, 77.01051900642669);
+  LatLng endLocation = LatLng(11.027875789527531, 77.0115207227632);
+  void _marker() async {
+    BitmapDescriptor markerbitmap = await BitmapDescriptor.fromAssetImage(
+      ImageConfiguration(size: Size(15, 15),   ),
+      "assets/t_load.png",
+    );
+    for (int i = 0; i < latLen.length; i++) {
+      markers.add(Marker(
+        //add start location marker
+        markerId: MarkerId(i.toString()),
+        position: latLen[i], //position of marker
+        infoWindow: InfoWindow(
+          //popup info
+          title: 'Point ',
+          snippet: 'Marker',
+        ),
+        icon: markerbitmap, //Icon for Marker
+      ));
     }
   }
-  //--------------- X X X ---------------
 
   @override
   void initState() {
-    getCurrentLocation();
-    // setCustomIcon();
-    // getpolypoints();
+    // _location.onLocationChanged.listen((locationData) {
+    //   setState(() {
+    //     _currentLocation =
+    //         LatLng(locationData.latitude!, locationData.longitude!);
+    //     _polylineCoordinates[0] = _currentLocation!;
+    //     _polylines = Set.from([
+    //       Polyline(
+    //         polylineId: PolylineId('polyline'),
+    //         color: Colors.blue,
+    //         width: 5,
+    //         points: _polylineCoordinates,
+    //       ),
+    //     ]);
+    //   });
+    // });
+
+    //  polyLine.points.add(startLocation);
+    // polyLine.points.add(endLocation);
+
+    // markers.add(Marker( //add distination location marker
+    //   markerId: MarkerId(endLocation.toString()),
+    //   position: endLocation, //position of marker
+    //   infoWindow: InfoWindow( //popup info
+    //     title: 'Destination Point ',
+    //     snippet: 'Destination Marker',
+    //   ),
+    //   icon: BitmapDescriptor.defaultMarker, //Icon for Marker
+    // ));
+
+    _directionPolyline.add(Polyline(
+      polylineId: const PolylineId('direction'),
+      color: Colors.blue,
+      points: latLen,
+      width: 5,
+      startCap: Cap.roundCap,
+      endCap: Cap.roundCap,
+      jointType: JointType.round,
+      geodesic: true,
+    ));
+    _marker();
+
     super.initState();
   }
 
-  bool pageload = true;
-
   @override
   Widget build(BuildContext context) {
-    Future.delayed(Duration(seconds: 2), () {
-      pageload = false;
-      setState(() {
-        getpolypoints();
-      });
-    });
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        centerTitle: true,
-        title: Text(
-          'Truck Route',
-          style: TextStyle(color: Colors.black45, fontWeight: FontWeight.bold),
+      body: SafeArea(
+        child: GoogleMap(
+          //Map widget from google_maps_flutter package
+          myLocationEnabled: true,
+          compassEnabled: true,
+          zoomGesturesEnabled: true, //enable Zoom in, out on map
+          initialCameraPosition: CameraPosition(
+            //innital position in map
+            target: startLocation, //initial position
+            zoom: 10.0, //initial zoom level
+          ),
+          markers: markers, //markers to show on map
+          polylines: _directionPolyline, //polylines
+          mapType: MapType.normal, //map type
+          onMapCreated: (controller) {
+            //method called when map is created
+            setState(() {
+              mapController = controller;
+            });
+          },
         ),
-        elevation: 0,
-       
       ),
-      body: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                  child: TextFormField(
-                controller: sourceAddress,
-                decoration: InputDecoration(hintText: 'Search'),
-                textCapitalization: TextCapitalization.words,
-                onChanged: (value) => print(value),
-              )),
-              //--------------------------------  From place select on google map --------------------------
-              IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) {
-                          return PlacePicker(
-                            resizeToAvoidBottomInset:
-                                false, // only works on fullscreen, less flickery
-                            apiKey: googleMapApiKey,
-                            hintText: "Find a place ...",
-                            searchingText: "Please wait ...",
-                            selectText: "Select place",
-                            outsideOfPickAreaText: "Place not in area",
-                            initialPosition: LatLng(0, 0),
-                            useCurrentLocation: true,
-                            selectInitialPosition: true,
-                            usePinPointingSearch: true,
-                            usePlaceDetailSearch: true,
-                            zoomGesturesEnabled: true,
-                            zoomControlsEnabled: true,
-                            onMapCreated: (GoogleMapController controller) {
-                              print("Map created");
-                            },
-                            onPlacePicked: (PickResult result) {
-                              print("Place picked: ${result.formattedAddress}");
-                              setState(() {
-                                fromAddress = result;
-                                sourceAddress.text =
-                                    // '${fromAddress!.geometry!.location.lat} , ${fromAddress!.geometry!.location.lng}';
-                                    result.formattedAddress!;
-
-                                fromLatLng = LatLng(
-                                    fromAddress!.geometry!.location.lat,
-                                    fromAddress!.geometry!.location.lng);
-                                Navigator.of(context).pop();
-
-                                getpolypoints();
-                              });
-                            },
-                            onMapTypeChanged: (MapType mapType) {
-                              print(
-                                  "Map type changed to ${mapType.toString()}");
-                            },
-                          );
-                        },
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.search))
-            ],
-          ),
-          Row(
-            children: [
-              Expanded(
-                  child: TextFormField(
-                controller: destinationAddress,
-                decoration: InputDecoration(hintText: 'Search'),
-                textCapitalization: TextCapitalization.words,
-                onChanged: (value) => print(value),
-              )),
-
-              //--------------------------------  To place select on google map --------------------------
-              IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) {
-                          return PlacePicker(
-                            resizeToAvoidBottomInset:
-                                false, // only works on fullscreen, less flickery
-                            apiKey: googleMapApiKey,
-                            hintText: "Find a place ...",
-                            searchingText: "Please wait ...",
-                            selectText: "Select place",
-                            outsideOfPickAreaText: "Place not in area",
-                            initialPosition: LatLng(0, 0),
-                            useCurrentLocation: true,
-                            selectInitialPosition: true,
-                            usePinPointingSearch: true,
-                            usePlaceDetailSearch: true,
-                            zoomGesturesEnabled: true,
-                            zoomControlsEnabled: true,
-
-                            onMapCreated: (GoogleMapController controller) {
-                              print("Map created");
-                            },
-                            onPlacePicked: (PickResult result) {
-                              print("Place picked: ${result.formattedAddress}");
-                              setState(() {
-                                toAddress = result;
-                                destinationAddress.text =
-                                    result.formattedAddress!;
-
-                                toLatLng = LatLng(
-                                    toAddress!.geometry!.location.lat,
-                                    toAddress!.geometry!.location.lng);
-
-                                Navigator.of(context).pop();
-
-                                getpolypoints();
-                              });
-                            },
-                            onMapTypeChanged: (MapType mapType) {
-                              print(
-                                  "Map type changed to ${mapType.toString()}");
-                            },
-                          );
-                        },
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.search))
-            ],
-          ),
-          //----------------------- MAP ----------------
-         currentLocation!.latitude ==null 
-              ? Center(
-                  child: Text('L O A D I N G . . . . '),
-                )
-              : Expanded(
-                  child: GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: LatLng(currentLocation!.latitude!,
-                          currentLocation!.longitude!),
-                      // zoom: CAMERA_ZOOM,
-                      tilt: CAMERA_TILT,
-                      bearing: CAMERA_BEARING,
-                    ),
-                    mapType: MapType.normal,
-                    myLocationEnabled: true,
-                    zoomGesturesEnabled: true,
-                    zoomControlsEnabled: true,
-                    scrollGesturesEnabled: true,
-                    markers: {
-                      Marker(
-                          markerId: MarkerId("Source"),
-                          position: LatLng(currentLocation!.latitude!,
-                              currentLocation!.longitude!)),
-                      Marker(
-                          markerId: MarkerId("Destination"),
-                          position: toLatLng),
-                      Marker(
-                          markerId: MarkerId("Driver Location"),
-                          position: LatLng(currentLocation!.latitude!,
-                              currentLocation!.longitude!)),
-                    },
-                    polylines: {
-                      Polyline(
-                          polylineId: PolylineId("Route"),
-                          points: polylineCoordinates,
-                          width: 6,
-                          color: mapColor)
-                    },
-                    onMapCreated: (controller) {
-                      mapController.complete(controller);
-                    },
-                  ),
-                ),
-        ],
-      ),
-      // ),
     );
   }
 }
