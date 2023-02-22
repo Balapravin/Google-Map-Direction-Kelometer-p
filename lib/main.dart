@@ -1,27 +1,20 @@
-<<<<<<< HEAD
-// ignore_for_file: non_constant_identifier_names, unnecessary_statements, prefer_const_constructors, prefer_collection_literals, prefer_final_fields
+// ignore_for_file: non_constant_identifier_names, unnecessary_statements, prefer_const_constructors, prefer_collection_literals, prefer_final_fields, prefer_interpolation_to_compose_strings, prefer_const_literals_to_create_immutables
 
 import 'dart:async';
-import 'dart:math';
+// import 'dart:convert';
+// import 'dart:developer';
+// import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_widget/google_maps_widget.dart';
-import 'package:location/location.dart';
-import 'package:truckotruck/address_picker.dart';
-=======
-import 'dart:async';
-
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:flutter/material.dart';
->>>>>>> ce3946befe73b3b2f9ac6b6115d5056c363d6c30
 
 void main() => runApp(MyApp());
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   @override
-<<<<<<< HEAD
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -40,99 +33,121 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  Set<Polyline> _directionPolyline = {};
-
   List<LatLng> latLen = [
-    LatLng(11.025307284410333, 77.01051900642669),
-    LatLng(11.027875789527531, 77.0115207227632),
-    LatLng(11.031650548380346, 77.02753406803816),
-    LatLng(11.065924014997053, 77.0928344131661),
-    LatLng(11.026418127485128, 77.12621194236172),
+    LatLng(11.03881588126287, 77.01362222601809),
+    LatLng(11.039767608001304, 77.02673828145427),
+    LatLng(11.04372475461159, 77.04133435834277),
+    LatLng(11.067874684255145, 77.0411905117804),
   ];
-  Polyline polyLine = Polyline(
-    polylineId: const PolylineId('direction'),
-    color: Colors.blue,
-    points: List.empty(growable: true),
-    width: 5,
-    startCap: Cap.roundCap,
-    endCap: Cap.roundCap,
-    jointType: JointType.round,
-    geodesic: true,
-  );
+  List<LatLng> latLen2 = [
+    LatLng(11.10234739871648, 77.1291879729305),
+    LatLng(11.116073704143734, 77.11168288714075),
+    LatLng(11.131302881976933, 77.13771928039014),
+    LatLng(11.13274684255445, 77.15109051178414),
+  ];
+
+  List<LatLng> latLen3 = [
+    LatLng(11.20234739871648, 77.2291879729305),
+    LatLng(11.216073704143734, 77.21168288714075),
+    LatLng(11.231302881976933, 77.23771928039014),
+    LatLng(11.243274684255445, 77.25109051178414),
+  ];
+  List<LatLng> latLen4 = [
+    LatLng(11.30234739871648, 77.3291879729305),
+    LatLng(11.316073704143734, 77.31168288714075),
+    LatLng(11.331302881976933, 77.33771928039014),
+    LatLng(11.343274684255445, 77.35109051178414),
+  ]; 
+  
+  List markermerge= [];
+  //================ Image encode=============
+  // declared method to get Images
+  Future<Uint8List> getImages(String path) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(),
+      targetHeight: 200,
+      targetWidth: 200,
+    );
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!
+        .buffer
+        .asUint8List();
+  }
+
+  Uint8List? marketimages;
+  List<String> assetimages = [
+    'assets/e_load.png',
+    'assets/e_unload.png',
+    'assets/e_rest.png',
+    'assets/e_load.png',
+  ];
+  List<String> assetimages1 = [
+    'assets/t_load.png',
+    'assets/t_unload.png',
+    'assets/t_rest.png',
+    'assets/t_load.png',
+  ];
+
+//======================
+  Set<Polyline> _directionPolyline = {};
 
   GoogleMapController? mapController; //contrller for Google map
   PolylinePoints polylinePoints = PolylinePoints();
 
   String googleAPiKey = googleMapApiKey;
 
-  Set<Marker> markers = Set(); //markers for google map
-  Map<PolylineId, Polyline> polylines = {}; //polylines to show direction
-
-  LatLng startLocation = LatLng(11.025307284410333, 77.01051900642669);
-  LatLng endLocation = LatLng(11.027875789527531, 77.0115207227632);
+  Set<Marker> markers = Set(); //markers for google map`
+  Map<PolylineId, Polyline> polylines = {}; 
+  
   void _marker() async {
-    BitmapDescriptor markerbitmap = await BitmapDescriptor.fromAssetImage(
-      ImageConfiguration(size: Size(15, 15),   ),
-      "assets/t_load.png",
-    );
-    for (int i = 0; i < latLen.length; i++) {
+markermerge=[...latLen,...latLen2,...latLen3,...latLen4];
+
+    final Uint8List Icon1 = await getImages('assets/e_load.png');
+    final Uint8List Icon2 = await getImages('assets/t_unload.png');
+    final Uint8List Icon3 = await getImages('assets/t_rest.png');
+
+    for (int i = 0; i < markermerge.length; i++) {
       markers.add(Marker(
-        //add start location marker
+        anchor: Offset(0.5, 0.5),
         markerId: MarkerId(i.toString()),
-        position: latLen[i], //position of marker
+        position: markermerge[i],
+        icon: i.isOdd? BitmapDescriptor.fromBytes(Icon1):BitmapDescriptor.fromBytes(Icon2),
         infoWindow: InfoWindow(
-          //popup info
-          title: 'Point ',
-          snippet: 'Marker',
+          title: 'Point No : ' + i.toString(),
+          snippet: 'Marker ID : ' + i.toString(),
         ),
-        icon: markerbitmap, //Icon for Marker
       ));
     }
   }
 
   @override
   void initState() {
-    // _location.onLocationChanged.listen((locationData) {
-    //   setState(() {
-    //     _currentLocation =
-    //         LatLng(locationData.latitude!, locationData.longitude!);
-    //     _polylineCoordinates[0] = _currentLocation!;
-    //     _polylines = Set.from([
-    //       Polyline(
-    //         polylineId: PolylineId('polyline'),
-    //         color: Colors.blue,
-    //         width: 5,
-    //         points: _polylineCoordinates,
-    //       ),
-    //     ]);
-    //   });
-    // });
-
-    //  polyLine.points.add(startLocation);
-    // polyLine.points.add(endLocation);
-
-    // markers.add(Marker( //add distination location marker
-    //   markerId: MarkerId(endLocation.toString()),
-    //   position: endLocation, //position of marker
-    //   infoWindow: InfoWindow( //popup info
-    //     title: 'Destination Point ',
-    //     snippet: 'Destination Marker',
-    //   ),
-    //   icon: BitmapDescriptor.defaultMarker, //Icon for Marker
-    // ));
-
     _directionPolyline.add(Polyline(
       polylineId: const PolylineId('direction'),
       color: Colors.blue,
       points: latLen,
       width: 5,
-      startCap: Cap.roundCap,
-      endCap: Cap.roundCap,
-      jointType: JointType.round,
-      geodesic: true,
+    ));
+    _directionPolyline.add(Polyline(
+      polylineId: const PolylineId('direction2'),
+      color: Colors.black,
+      points: latLen2,
+      width: 5,
+    ));
+    _directionPolyline.add(Polyline(
+      polylineId: const PolylineId('direction3'),
+      color: Colors.deepOrange,
+      points: latLen3,
+      width: 5,
+    ));
+    _directionPolyline.add(Polyline(
+      polylineId: const PolylineId('direction4'),
+      color: Colors.indigoAccent,
+      points: latLen4,
+      width: 5,
     ));
     _marker();
-
     super.initState();
   }
 
@@ -141,134 +156,25 @@ class _HomeState extends State<Home> {
     return Scaffold(
       body: SafeArea(
         child: GoogleMap(
-          //Map widget from google_maps_flutter package
           myLocationEnabled: true,
+          circles: Set.identity(),
+          mapToolbarEnabled: true,
+          myLocationButtonEnabled: true,
           compassEnabled: true,
-          zoomGesturesEnabled: true, //enable Zoom in, out on map
           initialCameraPosition: CameraPosition(
-            //innital position in map
-            target: startLocation, //initial position
-            zoom: 10.0, //initial zoom level
+            target: markermerge[0],
+            zoom: 15.0,
           ),
-          markers: markers, //markers to show on map
-          polylines: _directionPolyline, //polylines
-          mapType: MapType.normal, //map type
+          markers: markers,
+          polylines: _directionPolyline,
+          mapType: MapType.normal,
           onMapCreated: (controller) {
-            //method called when map is created
             setState(() {
               mapController = controller;
             });
           },
         ),
-=======
-  _MyAppState createState() => _MyAppState();
-}
-
-// Starting point latitude
-  double _originLatitude = 6.5212402;
-// Starting point longitude
-  double _originLongitude = 3.3679965;
-// Destination latitude
-  double _destLatitude = 6.849660;
-// Destination Longitude
-  double _destLongitude = 3.648190;
-// Markers to show points on the map
-  Map<MarkerId, Marker> markers = {}; 
-
-  PolylinePoints polylinePoints = PolylinePoints();
-  Map<PolylineId, Polyline> polylines = {};
-
-class _MyAppState extends State<MyApp> {
-  // Google Maps controller
-  Completer<GoogleMapController> _controller = Completer();
-  // Configure map position and zoom
-  static final CameraPosition _kGooglePlex = CameraPosition(
-    target: LatLng(_originLatitude, _originLongitude),
-    zoom: 9.4746,
-  ); 
-
-  @override
-  void initState() {
-    /// add origin marker origin marker
-    _addMarker(
-      LatLng(_originLatitude, _originLongitude),
-      "origin",
-      BitmapDescriptor.defaultMarker,
-    );
-
-    // Add destination marker
-    _addMarker(
-      LatLng(_destLatitude, _destLongitude),
-      "destination",
-      BitmapDescriptor.defaultMarkerWithHue(90),
-    );
-
-    _getPolyline();
-
-    super.initState();
-  }
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Welcome to Flutter',
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('Welcome to Flutter'),
-        ),
-        body: GoogleMap(
-            mapType: MapType.normal,
-            initialCameraPosition: _kGooglePlex,
-            myLocationEnabled: true,
-            tiltGesturesEnabled: true,
-            compassEnabled: true,
-            scrollGesturesEnabled: true,
-            zoomGesturesEnabled: true,
-            polylines: Set<Polyline>.of(polylines.values),
-            markers: Set<Marker>.of(markers.values),
-            onMapCreated: (GoogleMapController controller) {
-              _controller.complete(controller);
-            },
-       ), 
->>>>>>> ce3946befe73b3b2f9ac6b6115d5056c363d6c30
       ),
     );
-  }
-
-  // This method will add markers to the map based on the LatLng position
-  _addMarker(LatLng position, String id, BitmapDescriptor descriptor) {
-    MarkerId markerId = MarkerId(id);
-    Marker marker =
-        Marker(markerId: markerId, icon: descriptor, position: position);
-    markers[markerId] = marker;
-  }
-
-_addPolyLine(List<LatLng> polylineCoordinates) {
-    PolylineId id = PolylineId("poly");
-    Polyline polyline = Polyline(
-      polylineId: id,
-      points: polylineCoordinates,
-      width: 8,
-    );
-    polylines[id] = polyline;
-    setState(() {});
-  }
-
-void _getPolyline() async {
-    List<LatLng> polylineCoordinates = [];
-
-    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-      "AIzaSyDW_-Ds0EqmP3GSwQ2IHtxvLJHYRMozVi8",
-      PointLatLng(_originLatitude, _originLongitude),
-      PointLatLng(_destLatitude, _destLongitude),
-      travelMode: TravelMode.driving,
-    );
-    if (result.points.isNotEmpty) {
-      result.points.forEach((PointLatLng point) {
-        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-      });
-    } else {
-      print(result.errorMessage);
-    }
-    _addPolyLine(polylineCoordinates);
   }
 }
