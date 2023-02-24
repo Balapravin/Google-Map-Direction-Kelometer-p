@@ -1,168 +1,185 @@
-// ignore_for_file: prefer_const_constructors
+// ignore_for_file: non_constant_identifier_names, prefer_const_constructors
 
 import 'dart:async';
-import 'dart:ffi';
-import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:google_maps_widget/google_maps_widget.dart';
-import 'package:truckotruck/main.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-class MarkerMover extends StatefulWidget {
+class MyMap extends StatefulWidget {
+  const MyMap({super.key});
+
   @override
-  _MarkerMoverState createState() => _MarkerMoverState();
+  State<MyMap> createState() => _MyMapState();
 }
 
-class _MarkerMoverState extends State<MarkerMover> {
-
-  List<LatLng> latLen = [
-    
-    LatLng(11.03881588126287, 77.01362222601809),
-    LatLng(11.039767608001304, 77.02673828145427),
-    LatLng(11.04372475461159, 77.04133435834277),
-    LatLng(11.067874684255145, 77.0411905117804),
-    LatLng(11.10234739871648, 77.1291879729305),
-    LatLng(11.116073704143734, 77.11168288714075),
-    LatLng(11.131302881976933, 77.13771928039014),
-    LatLng(11.13274684255445, 77.15109051178414),    
-    LatLng(11.141302881976933, 77.16771928039014),
-    LatLng(11.14979684255445, 77.17109051178414),
-  ];
-
-  List rotater=[70.0,80.0,120.0,190.0,220.0,22.0,150.0,160.0,300.0,310.0];
-  
-  List markermerge= [];
-  //================ Image encode=============
-  // declared method to get Images
-  Future<Uint8List> getImages(String path) async {
-    ByteData data = await rootBundle.load(path);
-    ui.Codec codec = await ui.instantiateImageCodec(
-      data.buffer.asUint8List(),
-      targetHeight: 200,
-      targetWidth: 200,
-    );
-    ui.FrameInfo fi = await codec.getNextFrame();
-    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!
-        .buffer
-        .asUint8List();
-  }
-
-//======================
-  Set<Polyline> _directionPolyline = {};
-
-  GoogleMapController? mapController; //contrller for Google map
-  PolylinePoints polylinePoints = PolylinePoints();
-
-  String googleAPiKey = googleMapApiKey;
-
-  Set<Marker> markers = Set(); //markers for google map`
-  Map<PolylineId, Polyline> polylines = {}; 
-  
-  void _marker() async {
-markermerge=[...latLen];
-
-    final Uint8List Icon1 = await getImages('assets/e_load.png');
-    final Uint8List Icon2 = await getImages('assets/t_unload.png');
-    final Uint8List Icon3 = await getImages('assets/t_rest.png');
-
-    for (int i = 0; i < markermerge.length; i++) {
-      markers.add(Marker(
-        anchor: Offset(0.5, 0.5),
-        // rotation: rotater[i],
-        markerId: MarkerId(i.toString()),
-        position: markermerge[i],
-        icon: i.isOdd? BitmapDescriptor.fromBytes(Icon1):BitmapDescriptor.fromBytes(Icon2),
-        infoWindow: InfoWindow(
-          title: 'Point No : ' + i.toString(),
-          snippet: 'Marker ID : ' + i.toString(),
-        ),
-      ));
-    }
-  }
-
-
-int markerIndex=0;
-void showInfoWindow(String markerId) async {
-  final GoogleMapController controller = await mapController!;
-  controller.showMarkerInfoWindow(MarkerId(markerId));
-}
-void hideInfoWindow(String markerId) async {
-   GoogleMapController controller = await mapController!;
-  controller.hideMarkerInfoWindow(MarkerId(markerId));
-}
-  moveMarker()async{
-    
-    final Uint8List Icon2 = await getImages('assets/t_unload.png');
-    markers={};      
-       markers.add(Marker(
-        rotation: rotater[markerIndex],
-        anchor: Offset(0.5, 0.5),
-        markerId: MarkerId(markerIndex.toString()),
-        position: markermerge[markerIndex],
-        icon: BitmapDescriptor.fromBytes(Icon2),
-        infoWindow: InfoWindow(
-          title: 'Point No : ' + markerIndex.toString(),
-          snippet: 'Marker ID : ' + markerIndex.toString(),
-        ),
-      ));
-showInfoWindow(markerIndex.toString());
-      if(markerIndex!=markermerge.length){
-          markerIndex++;
-          Future.delayed(Duration(milliseconds: 1500), (){
-         markermerge.length ==markerIndex?'' :    moveMarker();
-          });
-      }      
-      setState(() {  });//refresh UI  
-  }
+class _MyMapState extends State<MyMap> {
+  Completer<GoogleMapController> _controller = Completer();
+  Set<Marker> _markers = {};
+  BitmapDescriptor? sourceIcon;
+  BitmapDescriptor? destinationIcon;
+  double pinPillPosition = -100;
+  PinInformation currentlySelectedPin = PinInformation(
+      pinPath: '',
+      avatarPath: '',
+      location: LatLng(0, 0),
+      locationName: '',
+      labelColor: Colors.grey);
+  PinInformation? sourcePinInfo;
+  PinInformation? destinationPinInfo;
+  double CAMERA_ZOOM = 13;
+  double CAMERA_TILT = 0;
+  double CAMERA_BEARING = 30;
+  LatLng SOURCE_LOCATION = LatLng(11.03881588126287, 77.01362222601809);
+  LatLng DEST_LOCATION = LatLng(11.067874684255145, 77.0411905117804);
 
   @override
   void initState() {
-    _directionPolyline.add(Polyline(
-      polylineId: const PolylineId('direction'),
-      color: Colors.blue,
-      points: latLen,
-      width: 5,
-    ));
-    _marker();
     super.initState();
+    setSourceAndDestinationIcons();
+  }
+
+  void setSourceAndDestinationIcons() async {
+    sourceIcon = await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration(devicePixelRatio: 2.5), 'assets/t_unload.png');
+    destinationIcon = await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration(devicePixelRatio: 2.5), 'assets/t_rest.png');
+  }
+
+  void onMapCreated(GoogleMapController controller) {
+    _controller.complete(controller);
+    setMapPins();
+  }
+
+  void setMapPins() {
+    // add the source marker to the list of markers
+    _markers.add(Marker(
+        markerId: MarkerId('sourcePin'),
+        position: SOURCE_LOCATION,
+        onTap: () {
+          setState(() {
+            currentlySelectedPin = sourcePinInfo!;
+            pinPillPosition = 0;
+          });
+        },
+        icon: sourceIcon!));
+    // populate the sourcePinInfo object
+    sourcePinInfo = PinInformation(
+        locationName: 'Start Location',
+        location: SOURCE_LOCATION,
+        pinPath: 'assets/e_unload.png',
+        avatarPath: 'assets/t_unload.png',
+        labelColor: Colors.blueAccent);
+    // add the destination marker to the list of markers
+    _markers.add(Marker(
+        markerId: MarkerId('destPin'),
+        position: DEST_LOCATION,
+        onTap: () {
+          setState(() {
+            currentlySelectedPin = destinationPinInfo!;
+            pinPillPosition = 0;
+          });
+        },
+        icon: destinationIcon!));
+    destinationPinInfo = PinInformation(
+        locationName: 'End Location',
+        location: DEST_LOCATION,
+        pinPath: 'assets/t_unload.png',
+        avatarPath: 'assets/e_unload.png',
+        labelColor: Colors.purple);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(context) {
     return Scaffold(
-          floatingActionButton: FloatingActionButton(
-             child: Text("Replay"),
-             onPressed: (){
-              markerIndex=0;
-                 moveMarker();
-             },
-          ),
-      body: SafeArea(
-        child: GoogleMap(
-
-          myLocationEnabled: true,
-          // circles: Set.identity(),
-          mapToolbarEnabled: true,
-          myLocationButtonEnabled: true,
-          compassEnabled: true,
-          initialCameraPosition: CameraPosition(
-            target: markermerge[markermerge.length ==markerIndex?markermerge.length-1: markerIndex],
-            zoom: 16.0,
-          ),
-          
-          markers: markers,
-          polylines: _directionPolyline,
-          mapType: MapType.normal,
-          onMapCreated: (controller) {
-            setState(() {
-              
-showInfoWindow(markerIndex.toString());
-              mapController = controller;
-            });
-          },
+        body: Stack(children: <Widget>[
+      GoogleMap(
+        myLocationEnabled: true,
+        compassEnabled: true,
+        tiltGesturesEnabled: false,
+        markers: _markers,
+        mapType: MapType.normal,
+        initialCameraPosition: CameraPosition(
+          target: SOURCE_LOCATION,
+          zoom: 16.0,
         ),
+        onMapCreated: onMapCreated,
+        onTap: (LatLng location) {
+          setState(() {
+            pinPillPosition = -100;
+          });
+        },
       ),
-    );
+      AnimatedPositioned(
+        bottom: pinPillPosition,
+        right: 0,
+        left: 0,
+        duration: Duration(milliseconds: 200),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            margin: EdgeInsets.all(20),
+            height: 70,
+            decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(50)),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                      blurRadius: 20,
+                      offset: Offset.zero,
+                      color: Colors.grey.withOpacity(0.5))
+                ]),
+            child: Row(
+              children: <Widget>[
+                Container(
+                    margin: EdgeInsets.only(left: 10),
+                    width: 50,
+                    height: 50,
+                    child: ClipOval(
+                        child: Image.asset(currentlySelectedPin.avatarPath!,
+                            fit: BoxFit.cover))), // first widget
+                Expanded(
+                  child: Container(
+                    margin: EdgeInsets.only(left: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Text(currentlySelectedPin.locationName!,
+                            style: TextStyle(
+                                color: currentlySelectedPin.labelColor)),
+                        Text(
+                            'Latitude: ${currentlySelectedPin.location!.latitude.toString()}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                            'Longitude: ${currentlySelectedPin.location!.longitude.toString()}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey))
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                    padding: EdgeInsets.all(15),
+                    child: Image.asset(currentlySelectedPin.pinPath!,
+                        width: 50, height: 50))
+              ],
+            ),
+          ),
+        ),
+      )
+    ]));
   }
+}
+
+class PinInformation {
+  String? pinPath;
+  String? avatarPath;
+  LatLng? location;
+  String? locationName;
+  Color? labelColor;
+  PinInformation(
+      {this.pinPath,
+      this.avatarPath,
+      this.location,
+      this.locationName,
+      this.labelColor});
 }

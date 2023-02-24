@@ -4,12 +4,12 @@
 
 import 'dart:convert';
 
-GoogleMapVeicleTracking googleMapVeicleTrackingFromJson(String str) => GoogleMapVeicleTracking.fromJson(json.decode(str));
+GoogleMapVeicleTrackingModel googleMapVeicleTrackingFromJson(String str) => GoogleMapVeicleTrackingModel.fromJson(json.decode(str));
 
-String googleMapVeicleTrackingToJson(GoogleMapVeicleTracking data) => json.encode(data.toJson());
+String googleMapVeicleTrackingToJson(GoogleMapVeicleTrackingModel data) => json.encode(data.toJson());
 
-class GoogleMapVeicleTracking {
-    GoogleMapVeicleTracking({
+class GoogleMapVeicleTrackingModel {
+    GoogleMapVeicleTrackingModel({
         this.code,
         this.status,
         this.mapData,
@@ -19,16 +19,16 @@ class GoogleMapVeicleTracking {
     bool? status;
     MapData? mapData;
     
-    factory GoogleMapVeicleTracking.fromJson(Map<String, dynamic> json) => GoogleMapVeicleTracking(
+    factory GoogleMapVeicleTrackingModel.fromJson(Map<String, dynamic> json) => GoogleMapVeicleTrackingModel(
         code: json["code"],
         status: json["status"],
-        mapData: json["mapData"] == null ? null : MapData.fromJson(json["mapData"]),
+        mapData: json["data"] == null ? null : MapData.fromJson(json["data"]),
     );
 
     Map<String, dynamic> toJson() => {
         "code": code,
         "status": status,
-        "mapData": mapData?.toJson(),
+        "data": mapData?.toJson(),
     };
 }
 

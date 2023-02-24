@@ -1,12 +1,12 @@
 // ignore_for_file: non_constant_identifier_names, unnecessary_statements, prefer_const_constructors, prefer_collection_literals, prefer_final_fields, prefer_interpolation_to_compose_strings, prefer_const_literals_to_create_immutables
 
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:google_maps_widget/google_maps_widget.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:truckotruck/Service/get_Api.dart';
 
 void main() => runApp(MyApp());
 
@@ -78,6 +78,8 @@ class _HomeState extends State<Home> {
   Set<Marker> markers = Set(); //markers for google map`
   Map<PolylineId, Polyline> polylines = {}; 
   
+  double pinPillPosition = -100;
+  
   void _marker() async {
 markermerge=[...latLen,...latLen2,...latLen3];
 
@@ -102,33 +104,51 @@ markermerge=[...latLen,...latLen2,...latLen3];
 
 
 int markerIndex=0;
+BottomPinInformation? PinInfo;
 
   moveMarker()async{
     
     final Uint8List Icon2 = await getImages('assets/t_unload.png');
+    final Uint8List Icon3 = await getImages('assets/t_rest.png');
     markers={};      
        markers.add(Marker(
         anchor: Offset(0.5, 0.5),
         markerId: MarkerId(markerIndex.toString()),
         position: markermerge[markerIndex],
-        icon: BitmapDescriptor.fromBytes(Icon2),
+        // icon: markerIndex.isOdd?BitmapDescriptor.fromBytes(Icon2):BitmapDescriptor.fromBytes(Icon3),
         infoWindow: InfoWindow(
           title: 'Point No : ' + markerIndex.toString(),
           snippet: 'Marker ID : ' + markerIndex.toString(),
         ),
       ));
 
+      // mapController!.animateCamera(CameraUpdate.newLatLng(markermerge[markerIndex]));
+       
+     PinInfo = BottomPinInformation(
+        date: '2023-01-'+markerIndex.toString(),
+        time: '02:30 PM'+markerIndex.toString(),
+        avatarPath: markerIndex.isOdd?'assets/t_unload.png':'assets/e_unload.png',
+        status: 'Loading' + markerIndex.toString());
+        
       if(markerIndex!=markermerge.length){
           markerIndex++;
-          Future.delayed(Duration(milliseconds: 1500), (){
+          Future.delayed(Duration(milliseconds: 2000), (){
          markermerge.length ==markerIndex?'' :    moveMarker();
           });
       }      
+      
       setState(() {  });//refresh UI  
   }
 
   @override
   void initState() {
+    CommonGetApiService().getmapDetails();
+     PinInfo = BottomPinInformation(
+        date: '',
+        time: '',
+        avatarPath: 'assets/t_unload.png',
+        status: '');
+
     _directionPolyline.add(Polyline(
       polylineId: const PolylineId('direction'),
       color: Colors.blue,
@@ -153,17 +173,25 @@ int markerIndex=0;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-          floatingActionButton: FloatingActionButton(
+  return  Scaffold(
+     floatingActionButton: FloatingActionButton(
+      
              child: Text("Replay"),
              onPressed: (){
+              setState(() {
+                // pinPillPosition=0;
+              });
               markerIndex=0;
                  moveMarker();
              },
           ),
-      body: SafeArea(
-        child: GoogleMap(
-
+        body: Stack(children: <Widget>[
+    GoogleMap(
+  onTap: (LatLng location) {
+          setState(() {
+            pinPillPosition = -100;
+          });
+        },
           myLocationEnabled: true,
           // circles: Set.identity(),
           mapToolbarEnabled: true,
@@ -179,11 +207,77 @@ int markerIndex=0;
           mapType: MapType.normal,
           onMapCreated: (controller) {
             setState(() {
+              pinPillPosition=-100;
               mapController = controller;
             });
           },
         ),
-      ),
-    );
+      AnimatedPositioned(
+        bottom: pinPillPosition,
+        right: 0,
+        left: 0,
+        duration: Duration(milliseconds: 200),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            margin: EdgeInsets.all(20),
+            height: 70,
+            decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(50)),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                      blurRadius: 20,
+                      offset: Offset.zero,
+                      color: Colors.grey.withOpacity(0.5))
+                ]),
+            child: Row(
+              children: <Widget>[
+                Container(
+                    margin: EdgeInsets.only(left: 10),
+                    width: 60,
+                    height: 60,
+                    child: ClipOval(
+                        child: Image.asset(PinInfo!.avatarPath!,
+                            fit: BoxFit.cover)
+                            )), // first widget
+                Expanded(
+                  child: Container(
+                    margin: EdgeInsets.only(left: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[                      
+                        Text(
+                            'Date : ${PinInfo!.date!.toString()}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            Text(
+                            'Time : ${PinInfo!.time!.toString()}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            Text(
+                            'Status : '+PinInfo!.status!,
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      )
+    ]));
   }
+}
+
+class BottomPinInformation {
+  String? avatarPath;
+  String? date;  
+  String? time;
+   String? status;
+  BottomPinInformation(
+      {this.avatarPath,
+      this.date,
+      this.time,
+      this.status,});
 }
