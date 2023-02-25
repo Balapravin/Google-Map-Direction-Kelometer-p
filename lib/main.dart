@@ -115,14 +115,14 @@ BottomPinInformation? PinInfo;
         anchor: Offset(0.5, 0.5),
         markerId: MarkerId(markerIndex.toString()),
         position: markermerge[markerIndex],
-        // icon: markerIndex.isOdd?BitmapDescriptor.fromBytes(Icon2):BitmapDescriptor.fromBytes(Icon3),
+        icon: markerIndex.isOdd?BitmapDescriptor.fromBytes(Icon2):BitmapDescriptor.fromBytes(Icon3),
         infoWindow: InfoWindow(
           title: 'Point No : ' + markerIndex.toString(),
           snippet: 'Marker ID : ' + markerIndex.toString(),
         ),
       ));
 
-      // mapController!.animateCamera(CameraUpdate.newLatLng(markermerge[markerIndex]));
+      mapController!.animateCamera(CameraUpdate.newLatLng(markermerge[markerIndex]));
        
      PinInfo = BottomPinInformation(
         date: '2023-01-'+markerIndex.toString(),
@@ -142,7 +142,7 @@ BottomPinInformation? PinInfo;
 
   @override
   void initState() {
-    CommonGetApiService().getmapDetails();
+    // CommonGetApiService().getmapDetails();
      PinInfo = BottomPinInformation(
         date: '',
         time: '',
@@ -179,7 +179,9 @@ BottomPinInformation? PinInfo;
              child: Text("Replay"),
              onPressed: (){
               setState(() {
-                // pinPillPosition=0;
+                
+    // CommonGetApiService().getmapDetails();
+                pinPillPosition=0;
               });
               markerIndex=0;
                  moveMarker();
@@ -194,6 +196,7 @@ BottomPinInformation? PinInfo;
         },
           myLocationEnabled: true,
           // circles: Set.identity(),
+          zoomControlsEnabled: false,
           mapToolbarEnabled: true,
           myLocationButtonEnabled: true,
           compassEnabled: true,
